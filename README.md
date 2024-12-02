@@ -48,3 +48,8 @@ npm run build
 ### 8. Запуск сайта
 
 Сайт доступен по адресу: http://localhost:8087
+
+### 9. Демонстрация работы
+https://github.com/user-attachments/assets/cd545e57-625b-4db4-9d3b-2a434399a06d
+
+
