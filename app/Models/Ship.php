@@ -21,12 +21,25 @@ class Ship extends Model
         'spec' => 'array',
     ];
 
+    protected $attributes = [
+        'spec' => '[]',
+    ];
+
+    public static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (Ship $ship) {
+            $ship->ordering = Ship::max('ordering') + 1;
+        });
+    }
+
     public function cabinCategories(): HasMany
     {
         return $this->hasMany(CabinCategory::class);
     }
 
-    public function galleries(): HasMany
+    public function gallery(): HasMany
     {
         return $this->hasMany(ShipGallery::class);
     }
