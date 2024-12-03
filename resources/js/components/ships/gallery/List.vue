@@ -1,7 +1,10 @@
 <script setup>
-import {ref} from "vue";
+import {ref} from "vue"
 import draggable from 'vuedraggable'
 import Item from "./Item.vue"
+import {useImagePreview} from '@/composable/useImagePreview'
+
+const {compressImage} = useImagePreview()
 
 const props = defineProps(['items'])
 
@@ -19,17 +22,29 @@ const upload = (event) => {
 
     files.forEach((file) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-            // @todo сделать загрузку на сервер каждой картинки по отдельности и хранить здесь URL
+        reader.onload = async (e) => {
+            const imageId = '_' + Date.now().toString()
+            const compressedImage = await compressImage(e.target.result, 200, 200, 0.8)
+
             items.value.push({
-                id: '_' + Date.now().toString(),
+                id: imageId,
                 title: '',
-                url: e.target.result
+                url: compressedImage,
+                file: file
             });
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(file)
     })
 };
+
+const changeImage = (id, url) => {
+    const index = items.value.findIndex(o => o.id.toString() === id.toString())
+
+    if (index !== -1) {
+        items.value[index].url = url
+        items.value[index].file = null
+    }
+}
 </script>
 
 <template>
@@ -40,7 +55,7 @@ const upload = (event) => {
             item-key="id"
             group="gallery">
             <template #item="{element, index}">
-                <item @remove="remove" :element="element" :index="index"></item>
+                <item @remove="remove" @changeImage="changeImage" :element="element" :index="index"></item>
             </template>
         </draggable>
 

@@ -2,6 +2,10 @@
 import {nextTick, reactive, ref} from "vue";
 import {Modal} from 'flowbite';
 import draggable from 'vuedraggable'
+import {useImagePreview} from '@/composable/useImagePreview'
+import PhotoItem from './PhotoItem.vue'
+
+const {compressImage} = useImagePreview();
 
 const emit = defineEmits(['change'])
 
@@ -11,7 +15,11 @@ const modalRef = ref()
 let form, modal
 
 const open = (data) => {
-    form = reactive(JSON.parse(JSON.stringify(data)))
+    data = JSON.parse(JSON.stringify(data))
+
+    data.photos = data.photos ? data.photos.map(url => ({url})) : []
+
+    form = reactive(data)
 
     nextTick(() => {
         modal = new Modal(modalRef.value, {
@@ -23,6 +31,7 @@ const open = (data) => {
 }
 
 const save = () => {
+    form.photos = form.photos.map(o => o.url)
     emit('change', form)
     close()
 }
@@ -40,16 +49,25 @@ const upload = (event) => {
 
     files.forEach((file) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             if (!form.photos) {
                 form.photos = []
             }
-            // @todo сделать загрузку на сервер каждой картинки по отдельности и хранить здесь URL
-            form.photos.push(e.target.result);
+
+            const compressedImage = await compressImage(e.target.result, 300, 300, 0.8)
+
+            form.photos.push({
+                url: compressedImage,
+                file: file
+            })
         };
         reader.readAsDataURL(file);
     })
 };
+
+const changeImage = (index, url) => {
+    form.photos[index] = {url}
+}
 
 defineExpose({
     open
@@ -104,23 +122,16 @@ defineExpose({
                                    accept="image/png,image/jpeg,image/gif"/>
                         </label>
                     </div>
-
                     <draggable
                         v-if="form.photos?.length"
                         v-model="form.photos"
                         group="photos"
                         class="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <template #item="{element, index}">
-                            <div class="relative">
-                                <img class="h-auto max-w-full rounded-lg" :src="element">
-                                <button
-                                    type="button"
-                                    class="absolute text-sm top-2 right-2 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline"
-                                    @click="removePhoto(index)"
-                                >
-                                    Удалить
-                                </button>
-                            </div>
+                            <photo-item :element="element"
+                                        :index="index"
+                                        @remove="removePhoto"
+                                        @changeImage="changeImage"/>
                         </template>
                     </draggable>
                 </div>
